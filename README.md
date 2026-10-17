@@ -48,15 +48,24 @@ Download the [example weekly report](examples/weekly-meeting-report-example.xlsx
 
 The example contains **fictional test data only** and is provided to demonstrate the report structure. It does not contain real meeting notes or company information. The Excel file is a static preview; the workflow writes its live output to Google Sheets.
 
-## Quick start (about 15 minutes)
+## Administrator setup
 
-1. **Create the Google Sheet** with three tabs named exactly `Meeting Summaries`, `Action Items`, and `Weekly Overview`. Paste the matching header row from `templates/` into row 1 of each tab.
-2. **Create the Data Table** `meeting_notes_tracking` in your n8n project, using the columns in `templates/data-table-schema.csv` (all of type *string*).
-3. **Import** `weekly-meeting-notes-report.json` into n8n (*Workflows → ⋯ → Import from File*).
-4. **Connect your own credentials**: Google Calendar, Google Docs, Google Sheets, and OpenAI (or Gateway credits on n8n Cloud). See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
-5. **Select your resources**: your spreadsheet in the 3 *Write … Tab* nodes and your Data Table in *Track Meeting in Data Table*.
-6. Review **Report Configuration** (calendar, time zone, notes-matching rules).
-7. Click **Execute workflow** once to test, check the sheet, then **Publish** to run it every Monday at 07:00.
+The automation owner handles configuration, testing, and ongoing maintenance. End users receive the weekly report without needing to configure n8n or manage API keys.
+
+1. **Prepare the report spreadsheet:** create a Google Sheet with three tabs named exactly `Meeting Summaries`, `Action Items`, and `Weekly Overview`. Copy the corresponding headers from `templates/` into the first row of each tab.
+2. **Create the tracking table:** create an n8n Data Table named `meeting_notes_tracking`, using the columns defined in `templates/data-table-schema.csv` (all of type *string*).
+3. **Import the workflow:** import `weekly-meeting-notes-report.json` into n8n.
+4. **Configure credentials:** connect the appropriate Google Calendar, Google Docs, Google Sheets, and organization-approved AI credentials. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md). If access to an individual Google account is required, ask the account owner to authorize the connection.
+5. **Select the destination resources:** configure the spreadsheet in the three *Write … Tab* nodes and the tracking table in *Track Meeting in Data Table*.
+6. **Review Report Configuration:** set the calendar, time zone, reporting period, and notes-matching rules. Confirm the reporting requirements and access permissions with the intended users.
+7. **Test the workflow:** run it manually and verify that meeting summaries, action items, and the weekly overview are written correctly.
+8. **Enable the schedule:** confirm the workflow’s time zone, then publish it to run every Monday at 07:00.
+
+## End-user experience
+
+Once setup is complete, users receive access to the report spreadsheet, which is updated automatically each week. They can review meeting summaries, decisions, action items, and blockers in one place.
+
+The automation owner maintains the workflow, monitors executions, and handles configuration changes or failures.
 
 ## Requirements
 
