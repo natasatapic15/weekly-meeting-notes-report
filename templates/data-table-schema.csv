@@ -1,0 +1,12 @@
+column,type
+calendar_id,string
+event_occurrence_id,string
+recurring_event_id,string
+notes_document_id,string
+notes_document_url,string
+meeting_title,string
+meeting_start,string
+reporting_week_start,string
+processing_status,string
+last_error,string
+last_processed_at,string
