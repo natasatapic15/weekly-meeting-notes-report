@@ -20,6 +20,13 @@ A tracking table (n8n Data Table) records which calendar event and which notes d
 > The automation owner configures and maintains the workflow using the appropriate Google account connections and organization-approved AI credentials. End users access the weekly report without configuring n8n. No credentials are stored in this repository. See [docs/SETUP.md](docs/SETUP.md).
 
 ---
+## Workflow overview
+
+![n8n workflow overview](docs/workflow-overview.png)
+
+The workflow collects meeting notes, extracts structured insights, and writes meeting summaries, action items, and a weekly overview to Google Sheets.
+
+> Template shown before deployment configuration. Credentials and destination resources must be connected before execution.
 
 ## Repository contents
 
