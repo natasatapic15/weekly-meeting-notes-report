@@ -1,86 +1,133 @@
-# Setup guide – one copy per team member
+# Setup guide – administrator-managed deployment
 
-Every colleague gets an independent copy of the workflow that uses **their own** calendar, Google account, AI key, spreadsheet, and tracking table. Nothing is shared between copies, so no one sees anyone else's meetings.
+The automation owner configures, tests, and maintains the workflow. End users access the weekly report without needing to configure n8n or manage API keys.
 
-## Why one copy per person?
+This template uses one workflow copy per report recipient, with a dedicated calendar connection, report spreadsheet, and tracking table. The automation owner manages these copies and can reuse organization-approved AI credentials where appropriate.
 
-- n8n credentials belong to the person (or project) that created them and are never exported with a workflow. The JSON in this repo has **no credentials**.
-- The workflow runs on a **schedule**, not because a person clicked something, so there is no "current user" whose account it could borrow at run time. Each person's copy has to hold that person's credentials.
-- Data Tables belong to an n8n project. Each copy needs its own tracking table.
+If an individual Google account is required, its owner authorizes the connection. Passwords and API keys should not be sent to the automation owner or stored in this repository.
 
-### Where to put the copies
+## Deployment and access
 
-| Your setup | Recommended |
-|---|---|
-| Each team member has their own n8n account on a shared instance | Each person imports the workflow into their **personal project** |
-| Shared n8n project for a team | One copy per person, named e.g. `Weekly Meeting Notes – Anna`, each with Anna's credentials |
-| Colleagues use their own n8n instance | Each person imports it into their own instance |
+Place each workflow copy in the appropriate n8n project and give it a descriptive name, such as `Weekly Meeting Notes – Anna`.
 
----
+Configure access to the n8n project, execution history, tracking table, and report spreadsheet according to the intended audience. Separate workflow copies alone do not guarantee that meeting data is private.
 
-## Step 1 – Create the Google Sheet
+## Step 1 – Create the report spreadsheet
 
-1. Create a new Google Sheet, for example **"Weekly Meeting Report – <your name>"**.
-2. Create three tabs with these **exact** names (case and spaces matter):
+1. Create a Google Sheet, for example **Weekly Meeting Report – Anna**.
+2. Create three tabs with these exact names:
    - `Meeting Summaries`
    - `Action Items`
    - `Weekly Overview`
-3. In each tab, paste the matching header line from `templates/` into **row 1**:
+3. Paste the corresponding headers from `templates/` into row 1 of each tab:
    - `templates/meeting-summaries-headers.csv`
    - `templates/action-items-headers.csv`
    - `templates/weekly-overview-headers.csv`
 
-   Tip: open the CSV, copy the line, paste it into cell A1, then use *Data → Split text to columns*.
+If the CSV headers appear in a single cell, use **Data → Split text to columns** and select the comma separator.
 
-The header names must match exactly, because the workflow uses them to find columns and to update existing rows instead of creating duplicates.
+Keep the header names unchanged so they match the workflow's column mappings. Grant spreadsheet access to the intended report users.
 
 ## Step 2 – Create the tracking Data Table
 
-1. In n8n, open your project, then go to **Data tables → Create data table**.
-2. Name it `meeting_notes_tracking`.
-3. Add these columns, all of type **String**:
+Create a Data Table in the deployment project. For the first workflow copy, name it `meeting_notes_tracking`. Use a distinct name for additional copies in the same project, such as `meeting_notes_tracking_anna`.
 
+Add the following columns, all of type **String**, as defined in `templates/data-table-schema.csv`:
+
+```text
+calendar_id
+event_occurrence_id
+recurring_event_id
+notes_document_id
+notes_document_url
+meeting_title
+meeting_start
+reporting_week_start
+processing_status
+last_error
+last_processed_at
 ```
-calendar_id, event_occurrence_id, recurring_event_id, notes_document_id,
-notes_document_url, meeting_title, meeting_start, reporting_week_start,
-processing_status, last_error, last_processed_at
-```
+
+A dedicated table per workflow copy is the deployment convention used by this template.
 
 ## Step 3 – Import the workflow
 
-1. In n8n, go to **Workflows**, then **⋯ / Create → Import from File**.
-2. Select `weekly-meeting-notes-report.json`.
-3. Optional: rename it, for example `Weekly Meeting Notes – <your name>`.
+1. Import `weekly-meeting-notes-report.json` into n8n using **Import from File**.
+2. Give the workflow a descriptive name identifying its report recipient.
+3. Keep the schedule disabled until configuration and testing are complete.
 
-## Step 4 – Connect your credentials
+## Step 4 – Configure credentials
 
-Open each node below and choose **Create new credential** in its credential field. Full details are in [CREDENTIALS.md](CREDENTIALS.md).
+Select or create the appropriate credentials for each node. See [CREDENTIALS.md](CREDENTIALS.md) for connection details.
 
 | Node | Credential |
 |---|---|
 | Get Last Week Calendar Events | Google Calendar OAuth2 |
 | Read Notes Document | Google Docs OAuth2 |
-| Write Meeting Summaries Tab, Write Action Items Tab, Write Weekly Overview Tab | Google Sheets OAuth2 (create it once, then reuse it in all three) |
-| OpenAI Model (Meeting Extraction), OpenAI Model (Weekly Overview) | OpenAI API key (create it once, then reuse it in both), **or** *Use Gateway credits* on n8n Cloud |
+| Write Meeting Summaries Tab, Write Action Items Tab, Write Weekly Overview Tab | Google Sheets OAuth2 |
+| OpenAI Model (Meeting Extraction), OpenAI Model (Weekly Overview) | Organization-approved OpenAI API credentials, or Gateway credits on n8n Cloud if supported by the selected configuration |
 
-## Step 5 – Select your resources
+Reuse the Google Sheets credential across the three report-writing nodes and the AI credential across both model nodes where appropriate.
+
+The Google credentials must have access to the selected calendar, linked notes documents, and destination spreadsheet. Being able to read a calendar event does not automatically grant access to its attached documents.
+
+If a personal Google connection is needed, have the account owner complete the authorization flow. End users do not need their own AI API keys.
+
+## Step 5 – Select the destination resources
 
 | Node | Field | Select |
 |---|---|---|
-| Write Meeting Summaries Tab | Document | your spreadsheet from Step 1 |
-| Write Action Items Tab | Document | the same spreadsheet |
-| Write Weekly Overview Tab | Document | the same spreadsheet |
-| Track Meeting in Data Table | Data table | `meeting_notes_tracking` from Step 2 |
+| Write Meeting Summaries Tab | Document | The spreadsheet created in Step 1 |
+| Write Action Items Tab | Document | The same spreadsheet |
+| Write Weekly Overview Tab | Document | The same spreadsheet |
+| Track Meeting in Data Table | Data table | The tracking table created in Step 2 |
+
+Check any other Data Table nodes in the workflow and point them to the same tracking table for this copy.
+
+Confirm that each report-writing node targets the correct tab and that its column mappings match the spreadsheet headers.
 
 ## Step 6 – Adjust the configuration
 
-1. Set **your** time zone in the workflow settings (**⋯ → Settings → Timezone**). The schedule ("Monday 07:00"), the reporting week, and the meeting times all follow it.
-2. Open **Report Configuration**. The defaults work for most teams: `calendarId = primary` reads the calendar of the person who connected the Google credential. Adjust `notesTitleKeywords` if your team's notes tool names its documents differently. See [CONFIGURATION.md](CONFIGURATION.md).
+1. Set the reporting time zone in the workflow settings.
+2. Confirm that the Schedule Trigger is configured for **Monday at 07:00** in that time zone.
+3. Open **Report Configuration** and review:
+   - `calendarId`: `primary` refers to the primary calendar of the Google account connected to the Calendar node. Set a different calendar ID when needed.
+   - `notesTitleKeywords`: adjust the matching rules to reflect the titles used by the meeting notes tool.
+   - Any reporting-period or time-zone settings exposed by the configuration node.
+4. Confirm that the reporting period covers the previous calendar week, Monday through Sunday.
+5. If a separate time-zone value exists in **Report Configuration**, keep it consistent with the workflow settings.
 
-## Step 7 – Test and publish
+See [CONFIGURATION.md](CONFIGURATION.md) for configuration details.
 
-1. Click **Execute workflow**. It processes **last week** (Monday–Sunday) immediately.
-2. Check the three tabs and the Data Table.
-3. When you're happy with the results, click **Publish**. From then on it runs every Monday at 07:00.
+## Step 7 – Test and enable the schedule
 
-Re-running for the same week is safe. Rows are updated, not duplicated.
+1. Run the workflow manually against test meetings and notes.
+2. Verify that:
+   - The correct reporting week and calendar events are selected.
+   - The intended notes documents are found and read.
+   - Summaries and decisions reflect the source notes.
+   - Owners and deadlines are included only when explicitly stated.
+   - All three report tabs receive the expected output.
+   - Missing or inaccessible notes are handled as intended.
+   - The tracking table records the appropriate statuses.
+3. Run the workflow again for the same reporting week and check all three tabs for duplicate rows, especially **Action Items**. Resolve any duplicates before enabling scheduled runs.
+4. Publish or activate the workflow, as required by the installed n8n version, and confirm that the weekly schedule is enabled.
+
+## End-user experience
+
+Users open the report spreadsheet to review meeting summaries, decisions, action items, and blockers. The report updates automatically each week after a successful scheduled execution.
+
+Users contact the automation owner to request changes to the calendar, reporting preferences, or spreadsheet access.
+
+## Ongoing maintenance
+
+The automation owner:
+
+- Reviews execution results and investigates failures.
+- Reconnects expired or revoked credentials when necessary.
+- Maintains notes-matching rules and report mappings.
+- Tests workflow changes before applying them to active copies.
+- Tracks which workflow copies need updates.
+- Monitors AI usage and associated costs.
+
+Before processing company meeting notes, confirm that the configured AI provider and report access settings comply with the organization's data policies.
