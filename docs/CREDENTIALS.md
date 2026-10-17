@@ -1,79 +1,81 @@
 # Credentials
 
-The workflow needs four credentials. **Each team member creates their own.** Never commit keys, client secrets, or exported credentials to this repository.
+The automation owner configures and maintains the credentials used by the workflow. End users authorize their Google accounts when needed and do not need to obtain their own AI API keys.
 
-| # | Credential type in n8n | Used by | How you authenticate |
-|---|---|---|---|
-| 1 | Google Calendar OAuth2 API | Get Last Week Calendar Events | Sign in with Google |
-| 2 | Google Docs OAuth2 API | Read Notes Document | Sign in with Google |
-| 3 | Google Sheets OAuth2 API | the 3 *Write … Tab* nodes | Sign in with Google |
-| 4 | OpenAI API | the 2 *OpenAI Model* nodes | API key, or Gateway credits |
+Never commit API keys, client secrets, access tokens, or exported credentials to this repository.
 
-The Data Table node needs no credential, because it uses n8n's built-in storage.
+## Required connections
 
----
+| Credential | Used by |
+|---|---|
+| Google Calendar OAuth2 | Get Last Week Calendar Events |
+| Google Docs OAuth2 | Read Notes Document |
+| Google Sheets OAuth2 | Write Meeting Summaries Tab, Write Action Items Tab, Write Weekly Overview Tab |
+| OpenAI API credentials | OpenAI Model (Meeting Extraction), OpenAI Model (Weekly Overview) |
 
-## Google (Calendar, Docs, Sheets)
+The Data Table uses n8n's built-in storage and does not require a separate external-service credential.
 
-The Google account you connect must be able to:
+## Google account access
 
-- read the calendar set in `calendarId` (by default `primary`, the main calendar of the account you connect)
-- **open the notes documents** attached to the meetings. If a notes doc isn't shared with you, the meeting is reported as `Notes inaccessible`.
-- edit the report spreadsheet
+The connected Google accounts must have permission to:
 
-### n8n Cloud – Managed OAuth2 (easiest)
+- Read the calendar specified in `calendarId`.
+- Read the notes documents linked to the selected events.
+- Edit the destination report spreadsheet.
 
-For Google Calendar, Google Docs, and Google Sheets, n8n Cloud offers **Managed OAuth2**:
+Access to a calendar event does not automatically grant access to its attached documents.
 
-1. In the node, open the credential dropdown and choose **Create new credential**.
-2. Click **Sign in with Google** and approve access.
-3. Save.
+When `calendarId` is `primary`, the workflow reads the primary calendar of the account connected to the Google Calendar node. For another calendar, enter its calendar ID and confirm that the connected account can access it.
 
-You don't need anything in Google Cloud Console.
+## Configure Google OAuth
 
-### Self-hosted n8n – Custom OAuth2
+The automation owner sets up the Google credentials using the authentication options available in the deployed n8n environment.
 
-Self-hosted instances need a Google Cloud OAuth app (one app can be shared by the team, and each person still signs in with their own account):
+1. Open the credential settings for the relevant Google node.
+2. Configure the OAuth connection.
+3. Have the Google account owner complete the authorization flow when required.
+4. Save the credential and select it in the appropriate node.
+5. Test access to the calendar, a sample notes document, and the report spreadsheet.
 
-1. In [Google Cloud Console](https://console.cloud.google.com), create a project.
-2. Under **APIs & Services → Library**, enable:
-   - **Google Calendar API**
-   - **Google Docs API**
-   - **Google Sheets API**
-   - **Google Drive API** (n8n's docs say the Docs and Sheets integrations require it)
-3. Configure the **OAuth consent screen**:
-   - Audience **Internal** if everyone is in the same Google Workspace. With **External**, add each team member as a **Test user**, otherwise they'll get "access denied".
-   - Add your n8n domain under **Branding → Authorized domains**.
-4. Under **Credentials → Create credentials → OAuth client ID**, create one of type **Web application**. Paste the **OAuth Redirect URL** shown in the n8n credential form into **Authorized redirect URIs**.
-5. In n8n, paste the **Client ID** and **Client Secret**, then click **Sign in with Google** and save.
+If custom OAuth is required:
 
-Repeat step 5 for each of the three Google credential types, using the same Client ID and Secret.
+1. Create or select a Google Cloud project.
+2. Enable the Google Calendar, Google Docs, Google Sheets, and Google Drive APIs used by the integrations.
+3. Configure the OAuth consent screen for the intended accounts.
+4. Create an OAuth client of type **Web application**.
+5. Add the exact OAuth redirect URL displayed by n8n.
+6. Enter the client ID and client secret in the n8n credential settings.
+7. Complete authorization for each required Google connection.
 
-Reference: [n8n docs – Google OAuth2 single service](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
+For an External OAuth app in Testing mode, add the intended accounts as test users. Use an Internal audience only when available and appropriate for the organization's Google Workspace configuration.
 
----
+Follow the current instructions for the installed n8n version:
 
-## OpenAI (the AI step)
+[Google OAuth2 credentials documentation](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/)
 
-Each team member can use **their own API key**:
+## Configure AI credentials
 
-1. Sign in at [platform.openai.com](https://platform.openai.com) and open the [API keys](https://platform.openai.com/api-keys) page.
-2. Click **Create new secret key** and copy it.
-3. In n8n, open **OpenAI Model (Meeting Extraction)**, then **Create new credential → OpenAI API**, and paste the key into **API Key**.
-   - **Organization ID**: only needed if you belong to several OpenAI organizations. Otherwise leave it blank.
-4. Select the same credential in **OpenAI Model (Weekly Overview)**.
+Use an organization-approved AI account and billing arrangement managed by the automation owner.
 
-**Alternative on n8n Cloud:** choose **Use Gateway credits** in the credential field. No API key is needed, and usage is charged to the instance's Gateway credits.
+1. Obtain an API key for the approved OpenAI project.
+2. Create an OpenAI credential in n8n and enter the key.
+3. Select that credential in both model nodes:
+   - OpenAI Model (Meeting Extraction)
+   - OpenAI Model (Weekly Overview)
+4. Choose a model supported by the nodes and available to the configured account.
+5. Run a test extraction and weekly overview.
 
-Both AI nodes use the model `gpt-5.4-mini`. You can change it in each *OpenAI Model* node. The key you use must have access to the model you choose.
+If the deployed n8n environment offers a supported managed AI billing option, the automation owner may configure that instead.
 
-Reference: [n8n docs – OpenAI credentials](https://docs.n8n.io/integrations/builtin/credentials/openai/)
+End users do not need individual AI API keys.
 
----
+[OpenAI credentials documentation](https://docs.n8n.io/integrations/builtin/credentials/openai/)
 
-## Security checklist
+## Credential management
 
-- [ ] No API keys, client secrets, or tokens in any file you commit
-- [ ] Don't commit workflow exports taken *after* someone added credentials. Exports only contain credential names and IDs, but keep the repo clean anyway.
-- [ ] Each person's credentials stay in their own n8n project
-- [ ] If a key was ever pasted into chat, email, or an issue, rotate it
+- Store secrets in n8n's credential system.
+- Limit access to credentials, workflows, and execution history to authorized people.
+- Review workflow exports before committing them, including credential references, hardcoded headers, and pinned test data.
+- Revoke or rotate exposed credentials.
+- Reauthorize Google connections when access expires or is revoked.
+- Confirm that meeting notes may be processed by the selected AI provider under the organization's data policies.
