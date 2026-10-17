@@ -1,33 +1,86 @@
 # Configuration
 
-All user-facing settings live in the **Report Configuration** node (the first node after the trigger).
+The automation owner configures each workflow copy for its intended report recipient.
 
-| Setting | Default | Meaning |
+Report settings are stored in the **Report Configuration** node. Credentials, destination resources, AI models, and the schedule are configured separately.
+
+## Report settings
+
+| Setting | Default | Purpose |
 |---|---|---|
-| `calendarId` | `primary` | The calendar to read. `primary` means **the calendar of whoever connected the Google Calendar credential**, so every team member's copy automatically reads their own calendar. Leave it as is unless you want a different calendar. For a shared calendar, use its ID (*Google Calendar → Settings → Integrate calendar → Calendar ID*). |
-| `reportTimeZone` | the workflow's time zone (`$now.zoneName`) | Used for meeting times when an event doesn't specify its own. It follows **⋯ → Settings → Timezone** (or the instance default), so normally you don't touch it. You can override it with a fixed value such as `America/New_York`. |
-| `notesTitleKeywords` | `Notes by Gemini, Meeting notes` | Comma-separated. A document counts as the notes if its **title contains** any keyword (case-insensitive). |
-| `notesAllowedMimeTypes` | `application/vnd.google-apps.document` | Comma-separated. Only attachments of these types are considered. The default is native Google Docs. |
-| `notesTitleRegex` | *(empty)* | Optional regular expression, also matched against the title (case-insensitive). Example: `^(Notes|Transcript)\b`. |
-| `useSingleGoogleDocWhenNoMatch` | `false` | If `true` and exactly **one** eligible doc is attached but no title matched, use that doc. Leave it `false` so that agendas or specs aren't mistaken for notes. |
-| `reportingWeekStart` / `reportingWeekEnd` / `timeMin` / `timeMax` | expressions | Calculated automatically as **last Monday 00:00 to Sunday 23:59** in the workflow's time zone. No editing needed. |
+| `calendarId` | `primary` | Calendar to read. `primary` refers to the primary calendar of the account connected to the Google Calendar node. For another calendar, enter its ID and confirm access. |
+| `reportTimeZone` | Workflow time zone (`$now.zoneName`) | Reporting time zone used when formatting meeting times without an explicit event time zone. Keep it consistent with the workflow settings unless a different display time zone is intentional. |
+| `notesTitleKeywords` | `Notes by Gemini, Meeting notes` | Comma-separated keywords used to identify notes attachments by title, ignoring case. |
+| `notesAllowedMimeTypes` | `application/vnd.google-apps.document` | Comma-separated list of eligible attachment MIME types. The default selects native Google Docs. |
+| `notesTitleRegex` | Empty | Optional regular expression for matching attachment titles, ignoring case. |
+| `useSingleGoogleDocWhenNoMatch` | `false` | Allows the sole eligible Google Doc attachment to be used when no title matches. Enable only after checking that agendas or other documents will not be selected incorrectly. |
+| `reportingWeekStart`, `reportingWeekEnd`, `timeMin`, `timeMax` | Expressions | Values used to calculate the reporting period and query Calendar events. Inspect the expressions before changing them. |
 
-## Which meetings are included?
+For a shared calendar, find its ID in Google Calendar under **Settings → Integrate calendar → Calendar ID**.
 
-A calendar event is processed when **all** of these are true:
+## Reporting period
 
-- it isn't cancelled
-- it has a start time (all-day events are skipped)
-- it isn't an *Out of office*, *Focus time*, or *Working location* entry
-- it has already ended
-- you haven't declined it
+The intended reporting period is the previous calendar week in the workflow's time zone:
 
-Each occurrence of a recurring meeting is handled separately (its own event occurrence ID).
+- Start: previous Monday at 00:00, inclusive.
+- End: the following Monday at 00:00, exclusive.
+
+Check the date expressions and returned events during setup, including meetings near midnight and daylight-saving transitions.
+
+The Calendar query and subsequent event filters determine which meetings appear in the report. A calendar entry being completed does not prove that the meeting actually took place.
+
+## Event selection
+
+The intended selection rules exclude:
+
+- Cancelled events.
+- All-day events.
+- Out-of-office, focus-time, and working-location entries.
+- Events that have not ended.
+- Events declined by the connected account.
+
+Recurring meetings should be expanded into separate occurrences, each identified by its event occurrence ID.
+
+Verify these rules against the imported workflow during testing.
+
+## Notes matching
+
+Review attachment titles from representative meetings and adjust the matching settings accordingly.
+
+Keep `useSingleGoogleDocWhenNoMatch` disabled unless the fallback is appropriate for the selected calendar.
+
+If multiple documents match, test which document the workflow selects. Tighten the keywords or regular expression if necessary.
+
+## Destination resources
+
+For each workflow copy, configure:
+
+- The destination spreadsheet in all three report-writing nodes.
+- The correct destination tab in each node.
+- The dedicated tracking table in every Data Table node that references it.
+
+See [SETUP.md](SETUP.md) for the deployment steps.
 
 ## Schedule
 
-The trigger **Every Monday 07:00** uses the workflow time zone (*Workflow → Settings → Timezone*). Change the day or time in the trigger node if needed.
+The intended schedule is **Monday at 07:00** in the workflow's time zone.
 
-## AI model
+Confirm the time zone in the workflow settings and the day and time in the Schedule Trigger. Enable scheduled execution only after testing.
 
-Open **OpenAI Model (Meeting Extraction)** and **OpenAI Model (Weekly Overview)** to change the model. The extraction prompt tells the AI to fill in an owner or deadline **only when it is written explicitly** in the notes, and otherwise to leave the field empty.
+## AI models
+
+Configure the model in both:
+
+- OpenAI Model (Meeting Extraction)
+- OpenAI Model (Weekly Overview)
+
+Use a model supported by the nodes and available to the configured account.
+
+The meeting extraction prompt should require:
+
+- Summaries and decisions grounded in the notes.
+- Owners and deadlines only when explicitly stated.
+- Empty fields when that information is absent.
+- Treatment of meeting notes as source material, not instructions.
+
+The weekly overview should use only successfully analyzed notes.
